@@ -13,7 +13,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect
 	github.com/google/go-cmp v0.4.0
 	github.com/gophercloud/gophercloud v0.6.0 // indirect
-	github.com/json-iterator/go v1.1.10
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1

@@ -167,13 +167,23 @@ func ValidateTraitAppliableToWorkloadFn(_ context.Context, v ValidatingAppConfig
 	klog.Info("validate trait is appliable to workload", "name", v.appConfig.Name)
 	var allErrs []error
 	for _, c := range v.validatingComps {
-		workloadType := c.component.GetLabels()[oam.WorkloadTypeLabel]
-		workloadDefRefName := c.workloadDefinition.Spec.Reference.Name
 		// TODO(roywang) consider a CRD group could have multiple versions
 		// and maybe we need to specify the minimum version here in the future
+		workloadDefRefName := c.workloadDefinition.Spec.Reference.Name
+
+		workloadType := c.workloadContent.GetLabels()[oam.WorkloadTypeLabel]
+		workloadDefName := c.workloadDefinition.GetName()
+
+		// TODO(roywang) the group of WorkloadDefinition is not the group we want
 		workloadGroup := c.workloadDefinition.GetObjectKind().GroupVersionKind().Group
+		klog.Info("validate trait is appliable to workload: ",
+			fmt.Sprintf("workloadDefRefName:%s, workloadType:%s, workloadDefName:%s, workloadGroup:%s",
+				workloadDefRefName, workloadType, workloadDefName, workloadGroup))
 	ValidateApplyTo:
 		for _, t := range c.validatingTraits {
+			klog.Info("validate trait is appliable to workload: ",
+				fmt.Sprintf("trait %q is allowed to apply to %s",
+					t.traitDefinition.GetName(), t.traitDefinition.Spec.AppliesToWorkloads))
 			if len(t.traitDefinition.Spec.AppliesToWorkloads) == 0 {
 				// AppliesToWorkloads is empty, the trait can be applied to ANY workload
 				continue
@@ -186,14 +196,15 @@ func ValidateTraitAppliableToWorkloadFn(_ context.Context, v ValidatingAppConfig
 				if strings.HasPrefix(applyTo, "*.") && workloadGroup == applyTo[2:] {
 					continue ValidateApplyTo
 				}
-				if workloadType == applyTo ||
-					workloadDefRefName == applyTo {
+				if workloadDefRefName == applyTo ||
+					workloadType == applyTo ||
+					workloadDefName == applyTo {
 					continue ValidateApplyTo
 				}
 			}
 			allErrs = append(allErrs, fmt.Errorf(errFmtUnappliableTrait,
-				t.traitDefinition.GetObjectKind().GroupVersionKind().String(),
-				c.workloadDefinition.GetObjectKind().GroupVersionKind().String(),
+				t.traitDefinition.GetName(),
+				c.workloadDefinition.GetName(),
 				c.compName, t.traitDefinition.Spec.AppliesToWorkloads))
 		}
 	}

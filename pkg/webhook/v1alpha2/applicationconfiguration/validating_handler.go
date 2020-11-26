@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam/discoverymapper"
 
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog"
@@ -170,15 +170,12 @@ func ValidateTraitAppliableToWorkloadFn(_ context.Context, v ValidatingAppConfig
 		// TODO(roywang) consider a CRD group could have multiple versions
 		// and maybe we need to specify the minimum version here in the future
 		workloadDefRefName := c.workloadDefinition.Spec.Reference.Name
-
-		workloadType := c.workloadContent.GetLabels()[oam.WorkloadTypeLabel]
 		workloadDefName := c.workloadDefinition.GetName()
+		workloadGroup := schema.ParseGroupResource(workloadDefRefName).Group
 
-		// TODO(roywang) the group of WorkloadDefinition is not the group we want
-		workloadGroup := c.workloadDefinition.GetObjectKind().GroupVersionKind().Group
 		klog.Info("validate trait is appliable to workload: ",
-			fmt.Sprintf("workloadDefRefName:%s, workloadType:%s, workloadDefName:%s, workloadGroup:%s",
-				workloadDefRefName, workloadType, workloadDefName, workloadGroup))
+			fmt.Sprintf("workloadDefRefName:%s, workloadDefName(type):%s, workloadGroup:%s",
+				workloadDefRefName, workloadDefName, workloadGroup))
 	ValidateApplyTo:
 		for _, t := range c.validatingTraits {
 			klog.Info("validate trait is appliable to workload: ",
@@ -197,7 +194,6 @@ func ValidateTraitAppliableToWorkloadFn(_ context.Context, v ValidatingAppConfig
 					continue ValidateApplyTo
 				}
 				if workloadDefRefName == applyTo ||
-					workloadType == applyTo ||
 					workloadDefName == applyTo {
 					continue ValidateApplyTo
 				}

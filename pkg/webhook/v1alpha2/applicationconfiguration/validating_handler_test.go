@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -224,11 +223,6 @@ func TestValidateWorkloadNameForVersioningFn(t *testing.T) {
 }
 
 func TestValidateTraitAppliableToWorkloadFn(t *testing.T) {
-	workloadContentWithLabel := unstructured.Unstructured{}
-	workloadContentWithLabel.SetLabels(map[string]string{
-		oam.WorkloadTypeLabel: "TestWorkload",
-	})
-
 	tests := []struct {
 		caseName            string
 		validatingAppConfig ValidatingAppConfig
@@ -284,24 +278,6 @@ func TestValidateTraitAppliableToWorkloadFn(t *testing.T) {
 			want: nil,
 		},
 		{
-			caseName: "apply trait to workload with specific type label",
-			validatingAppConfig: ValidatingAppConfig{
-				validatingComps: []ValidatingComponent{
-					{
-						workloadContent: workloadContentWithLabel,
-						validatingTraits: []ValidatingTrait{
-							{traitDefinition: v1alpha2.TraitDefinition{
-								Spec: v1alpha2.TraitDefinitionSpec{
-									AppliesToWorkloads: []string{"TestWorkload"},
-								},
-							}},
-						},
-					},
-				},
-			},
-			want: nil,
-		},
-		{
 			caseName: "apply trait to workload with specific definition reference name",
 			validatingAppConfig: ValidatingAppConfig{
 				validatingComps: []ValidatingComponent{
@@ -325,36 +301,52 @@ func TestValidateTraitAppliableToWorkloadFn(t *testing.T) {
 			},
 			want: nil,
 		},
-		// {
-		//     caseName: "apply trait to workload with specific group",
-		//     validatingAppConfig: ValidatingAppConfig{
-		//         validatingComps: []ValidatingComponent{
-		//             {
-		//                 workloadDefinition: v1alpha2.WorkloadDefinition{
-		//                     TypeMeta: v1.TypeMeta{
-		//                         APIVersion: "example.com/v1",
-		//                         Kind:       "TestWorkload",
-		//                     },
-		//                 },
-		//                 validatingTraits: []ValidatingTrait{
-		//                     {traitDefinition: v1alpha2.TraitDefinition{
-		//                         Spec: v1alpha2.TraitDefinitionSpec{
-		//                             AppliesToWorkloads: []string{"*.example.com"},
-		//                         },
-		//                     }},
-		//                 },
-		//             },
-		//         },
-		//     },
-		//     want: nil,
-		// },
+		{
+			caseName: "apply trait to workload with specific group",
+			validatingAppConfig: ValidatingAppConfig{
+				validatingComps: []ValidatingComponent{
+					{
+						workloadDefinition: v1alpha2.WorkloadDefinition{
+							Spec: v1alpha2.WorkloadDefinitionSpec{
+								Reference: v1alpha2.DefinitionReference{
+									Name: "testworkloads.example.com",
+								},
+							},
+						},
+						validatingTraits: []ValidatingTrait{
+							{traitDefinition: v1alpha2.TraitDefinition{
+								Spec: v1alpha2.TraitDefinitionSpec{
+									AppliesToWorkloads: []string{"*.example.com"},
+								},
+							}},
+						},
+					},
+					{
+						workloadDefinition: v1alpha2.WorkloadDefinition{
+							Spec: v1alpha2.WorkloadDefinitionSpec{
+								Reference: v1alpha2.DefinitionReference{
+									Name: "testworkload2s.example.com",
+								},
+							},
+						},
+						validatingTraits: []ValidatingTrait{
+							{traitDefinition: v1alpha2.TraitDefinition{
+								Spec: v1alpha2.TraitDefinitionSpec{
+									AppliesToWorkloads: []string{"*.example.com"},
+								},
+							}},
+						},
+					},
+				},
+			},
+			want: nil,
+		},
 		{
 			caseName: "apply trait to unappliable workload",
 			validatingAppConfig: ValidatingAppConfig{
 				validatingComps: []ValidatingComponent{
 					{
-						compName:        "example-comp",
-						workloadContent: workloadContentWithLabel,
+						compName: "example-comp",
 						workloadDefinition: v1alpha2.WorkloadDefinition{
 							ObjectMeta: v1.ObjectMeta{Name: "TestWorkload"},
 							Spec: v1alpha2.WorkloadDefinitionSpec{
